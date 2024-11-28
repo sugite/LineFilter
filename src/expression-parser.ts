@@ -1,164 +1,165 @@
-// 词法单元类型
-type TokenType = 'PATTERN' | 'AND' | 'OR' | 'LPAREN' | 'RPAREN';
-
-// 词法单元
-interface Token {
-    type: TokenType;
-    value: string;
-}
-
-// 抽象语法树节点
-interface ASTNode {
-    type: 'PATTERN' | 'AND' | 'OR';
-    value?: string;
-    left?: ASTNode;
-    right?: ASTNode;
-}
-
 export class ExpressionParser {
-    private pos = 0;
-    private input = '';
+    // 运算符优先级
+    private precedence: { [key: string]: number } = {
+        'or': 1,
+        'and': 2
+    };
 
     parse(expression: string): RegExp {
-        this.pos = 0;
-        this.input = expression;
-        const pattern = this.parseOr();
-        return new RegExp(pattern, 'i'); // 使用不区分大小写的模式
+        const tokens = this.tokenize(expression);
+        const result = this.evaluateExpression(tokens);
+        return new RegExp(result, 'i');
     }
 
-    private parseOr(): string {
-        const terms: string[] = [];
-        terms.push(this.parseAnd());
+    private tokenize(expression: string): string[] {
+        const tokens: string[] = [];
+        let pos = 0;
 
-        while (this.pos < this.input.length) {
-            if (this.consumeOperator('or')) {
-                terms.push(this.parseAnd());
-            } else {
+        while (pos < expression.length) {
+            // 跳过空白
+            while (pos < expression.length && /\s/.test(expression[pos])) {
+                pos++;
+            }
+
+            if (pos >= expression.length) {
                 break;
             }
-        }
 
-        return terms.length > 1 ? `(${terms.join('|')})` : terms[0];
-    }
-
-    private parseAnd(): string {
-        const terms: string[] = [];
-        terms.push(this.parseTerm());
-
-        while (this.pos < this.input.length) {
-            if (this.consumeOperator('and')) {
-                terms.push(this.parseTerm());
-            } else {
-                break;
+            // 处理括号
+            if (expression[pos] === '(' || expression[pos] === ')') {
+                tokens.push(expression[pos]);
+                pos++;
+                continue;
             }
-        }
 
-        return terms.length > 1 ? `(?=.*${terms.join(')(?=.*')})` : terms[0];
-    }
-
-    private parseTerm(): string {
-        this.consumeWhitespace();
-
-        if (this.pos >= this.input.length) {
-            throw new Error('Unexpected end of expression');
-        }
-
-        // 处理括号
-        if (this.input[this.pos] === '(') {
-            this.pos++; // 跳过左括号
-            const result = this.parseOr();
-            this.consumeWhitespace();
-            if (this.pos >= this.input.length || this.input[this.pos] !== ')') {
-                throw new Error('Missing closing parenthesis');
-            }
-            this.pos++; // 跳过右括号
-            return result;
-        }
-
-        // 处理引号包裹的内容
-        if (this.input[this.pos] === '"') {
-            return this.parseQuotedString();
-        }
-
-        throw new Error('Expected quoted string or parenthesis');
-    }
-
-    private parseQuotedString(): string {
-        this.pos++; // 跳过开始引号
-        let pattern = '';
-        let escaped = false;
-
-        while (this.pos < this.input.length) {
-            const char = this.input[this.pos];
-
-            if (escaped) {
-                if (char === '"' || char === '\\' || char === '*') {
-                    pattern += char;
-                } else {
-                    pattern += '\\' + char;
+            // 处理引号中的模式
+            if (expression[pos] === '"') {
+                let pattern = '';
+                pos++; // 跳过开始引号
+                
+                while (pos < expression.length && expression[pos] !== '"') {
+                    if (expression[pos] === '\\' && pos + 1 < expression.length) {
+                        // 处理转义字符
+                        pattern += expression[pos + 1];
+                        pos += 2;
+                    } else {
+                        pattern += expression[pos];
+                        pos++;
+                    }
                 }
-                escaped = false;
-            } else if (char === '\\') {
-                escaped = true;
-            } else if (char === '"') {
-                this.pos++; // 跳过结束引号
-                // 将通配符转换为正则表达式
-                return this.wildcardToRegex(pattern);
-            } else {
-                pattern += char;
+                
+                if (pos >= expression.length) {
+                    throw new Error('Unterminated quoted string');
+                }
+                
+                pos++; // 跳过结束引号
+                tokens.push(this.wildcardToRegex(pattern));
+                continue;
             }
 
-            this.pos++;
+            // 处理操作符
+            if (expression.slice(pos).toLowerCase().startsWith('and')) {
+                tokens.push('and');
+                pos += 3;
+                continue;
+            }
+            if (expression.slice(pos).toLowerCase().startsWith('or')) {
+                tokens.push('or');
+                pos += 2;
+                continue;
+            }
+
+            // 如果到这里还没有匹配，说明是无效的字符
+            throw new Error(`Unexpected character at position ${pos}: ${expression[pos]}`);
         }
 
-        throw new Error('Unterminated quoted string');
+        return tokens;
+    }
+
+    private evaluateExpression(tokens: string[]): string {
+        const operands: string[] = [];  // 操作数栈
+        const operators: string[] = [];  // 运算符栈
+
+        for (const token of tokens) {
+            if (token === '(') {
+                operators.push(token);
+            }
+            else if (token === ')') {
+                // 处理直到遇到左括号
+                while (operators.length > 0 && operators[operators.length - 1] !== '(') {
+                    this.processOperator(operands, operators);
+                }
+                if (operators.length === 0) {
+                    throw new Error('Mismatched parentheses: missing opening parenthesis');
+                }
+                operators.pop(); // 弹出左括号
+            }
+            else if (token === 'and' || token === 'or') {
+                // 处理优先级更高或相等的运算符
+                while (operators.length > 0 && operators[operators.length - 1] !== '(' &&
+                       this.precedence[operators[operators.length - 1]] >= this.precedence[token]) {
+                    this.processOperator(operands, operators);
+                }
+                operators.push(token);
+            }
+            else {
+                // 操作数直接入栈
+                operands.push(token);
+            }
+        }
+
+        // 处理剩余的运算符
+        while (operators.length > 0) {
+            if (operators[operators.length - 1] === '(') {
+                throw new Error('Mismatched parentheses: missing closing parenthesis');
+            }
+            this.processOperator(operands, operators);
+        }
+
+        if (operands.length !== 1) {
+            throw new Error('Invalid expression: too many operands');
+        }
+
+        return operands[0];
+    }
+
+    private processOperator(operands: string[], operators: string[]) {
+        if (operands.length < 2) {
+            throw new Error('Invalid expression: not enough operands');
+        }
+
+        const operator = operators.pop()!;
+        const right = operands.pop()!;
+        const left = operands.pop()!;
+
+        let result: string;
+        if (operator === 'and') {
+            // 处理嵌套的 AND 操作
+            const leftPart = left.startsWith('(?=.*') ? left : `(?=.*${left})`;
+            const rightPart = right.startsWith('(?=.*') ? right : `(?=.*${right})`;
+            result = leftPart + rightPart;
+        } else { // or
+            // 处理嵌套的 OR 操作
+            const leftPart = left.startsWith('(?=.*') ? `(${left})` : left;
+            const rightPart = right.startsWith('(?=.*') ? `(${right})` : right;
+            
+            // 移除不必要的括号
+            const cleanLeft = leftPart.startsWith('(') && leftPart.endsWith(')') ? leftPart.slice(1, -1) : leftPart;
+            const cleanRight = rightPart.startsWith('(') && rightPart.endsWith(')') ? rightPart.slice(1, -1) : rightPart;
+            
+            result = `(${cleanLeft}|${cleanRight})`;
+        }
+
+        operands.push(result);
     }
 
     private wildcardToRegex(pattern: string): string {
-        let result = '';
-        let escaped = false;
-
-        for (let i = 0; i < pattern.length; i++) {
-            const char = pattern[i];
-
-            if (escaped) {
-                if (char === '*') {
-                    result += '\\*';
-                } else {
-                    result += '\\' + char;
-                }
-                escaped = false;
-            } else if (char === '\\') {
-                escaped = true;
-            } else if (char === '*') {
-                result += '.*';
-            } else {
-                result += this.escapeRegExp(char);
-            }
-        }
-
+        // 处理通配符
+        let result = pattern.split('*').map(part => {
+            // 转义特殊字符
+            return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }).join('.*');
+        
         return result;
-    }
-
-    private escapeRegExp(string: string): string {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    private consumeWhitespace() {
-        while (this.pos < this.input.length && /\s/.test(this.input[this.pos])) {
-            this.pos++;
-        }
-    }
-
-    private consumeOperator(operator: string): boolean {
-        this.consumeWhitespace();
-        if (this.pos + operator.length <= this.input.length) {
-            const substr = this.input.substr(this.pos, operator.length).toLowerCase();
-            if (substr === operator.toLowerCase()) {
-                this.pos += operator.length;
-                return true;
-            }
-        }
-        return false;
     }
 }
