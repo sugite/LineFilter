@@ -117,8 +117,8 @@ export function activate(context: vscode.ExtensionContext) {
         
         // 显示输入框，带上次输入的值
         filterPattern = await vscode.window.showInputBox({
-            prompt: '输入过滤条件 (例如: ("viewDid*" or "*TCP") and "2024")',
-            placeHolder: '支持 and/or 运算符，括号，通配符*，模式需要用双引号包裹',
+            prompt: 'Enter filter pattern (e.g., ("fail*" or "*error") and "2024-01-01")',
+            placeHolder: 'Supports and/or operators, parentheses, wildcard *, patterns must be wrapped in double quotes',
             value: lastPattern // 显示上次的输入
         });
 

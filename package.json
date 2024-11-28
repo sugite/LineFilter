@@ -2,7 +2,7 @@
   "name": "log-line-filter",
   "displayName": "Log Line Filter",
   "description": "Filter lines with advanced regex patterns and logical expressions",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "dengbo",
   "author": {
     "name": "dengbo"
