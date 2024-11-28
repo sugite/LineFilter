@@ -1,6 +1,6 @@
 {
-  "name": "linefilter",
-  "displayName": "Line Filter",
+  "name": "log-line-filter",
+  "displayName": "Log Line Filter",
   "description": "Filter lines with advanced regex patterns and logical expressions",
   "version": "1.0.0",
   "publisher": "dengbo",
@@ -27,21 +27,21 @@
     "line"
   ],
   "activationEvents": [
-    "onCommand:linefilter.filter"
+    "onCommand:log-line-filter.filter"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "linefilter.filter",
-        "title": "Line Filter",
+        "command": "log-line-filter.filter",
+        "title": "Log Line Filter",
         "icon": "$(filter)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "linefilter.filter",
+          "command": "log-line-filter.filter",
           "group": "navigation",
           "when": "editorTextFocus"
         }

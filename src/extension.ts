@@ -75,7 +75,7 @@ export function activate(context: vscode.ExtensionContext) {
         border: '1px solid rgba(255, 235, 59, 0.7)'
     });
 
-    let disposable = vscode.commands.registerCommand('linefilter.filter', async () => {
+    let disposable = vscode.commands.registerCommand('log-line-filter.filter', async () => {
         // 获取当前活动的文本编辑器
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -145,11 +145,11 @@ export function activate(context: vscode.ExtensionContext) {
             currentRestoreButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
             currentRestoreButton.text = "$(discard) 恢复原始内容";
             currentRestoreButton.tooltip = "恢复到过滤前的内容";
-            currentRestoreButton.command = 'linefilter.restoreContent';
+            currentRestoreButton.command = 'log-line-filter.restoreContent';
             currentRestoreButton.show();
 
             // 注册恢复命令
-            currentRestoreDisposable = vscode.commands.registerCommand('linefilter.restoreContent', async () => {
+            currentRestoreDisposable = vscode.commands.registerCommand('log-line-filter.restoreContent', async () => {
                 const originalContent = originalContents.get(documentUri);
                 if (originalContent) {
                     await vscode.window.withProgress({
@@ -281,7 +281,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // 添加一个命令来清除历史记录
-    let clearHistoryDisposable = vscode.commands.registerCommand('linefilter.clearFilterHistory', () => {
+    let clearHistoryDisposable = vscode.commands.registerCommand('log-line-filter.clearFilterHistory', () => {
         filterHistory = [];
         saveHistory(context);
         vscode.window.showInformationMessage('过滤条件历史已清除');
