@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <!-- 背景圆形 -->
+    <circle cx="64" cy="64" r="64" fill="#2D2D2D"/>
+    
+    <!-- 内部圆形 -->
+    <circle cx="64" cy="64" r="54" fill="#424242"/>
+    
+    <!-- 文本行 -->
+    <rect x="24" y="30" width="80" height="8" rx="2" fill="#89D185"/>
+    <rect x="24" y="50" width="80" height="8" rx="2" fill="#89D185"/>
+    <rect x="24" y="70" width="80" height="8" rx="2" fill="#89D185"/>
+    <rect x="24" y="90" width="80" height="8" rx="2" fill="#89D185"/>
+    
+    <!-- 过滤器图标 -->
+    <g transform="translate(64, 64) scale(0.6) translate(-64, -64)" fill="#CCE6FF">
+        <path d="M94 25 L64 55 L34 25 Z"/>
+        <path d="M70 52 L64 58 L58 52 L58 85 L64 91 L70 85 Z"/>
+    </g>
+</svg>
