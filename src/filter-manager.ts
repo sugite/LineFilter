@@ -17,6 +17,8 @@ export class FilterManager {
     ): Promise<FilterResult> {
         const parser = new ExpressionParser();
         const regex = parser.parse(filterPattern);
+        // 预编译所有高亮模式的正则表达式
+        const highlightRegexes = this.extractPatterns(filterPattern).map(pattern => new RegExp(pattern, 'gi'));
 
         const lines = content.split('\n');
         const totalLines = lines.length;
@@ -36,15 +38,10 @@ export class FilterManager {
                 const line = batch[j];
 
                 if (regex.test(line)) {
-                    // 从搜索模式中提取所有引号内的模式
-                    const patterns = this.extractPatterns(filterPattern);
-
-                    // 为每个模式创建高亮
-                    for (const pattern of patterns) {
+                    // 使用预编译的正则表达式进行高亮匹配
+                    for (const highlightRegex of highlightRegexes) {
                         try {
-                            const highlightRegex = new RegExp(pattern, 'gi');
                             const matches = Array.from(line.matchAll(highlightRegex));
-                            
                             for (const match of matches) {
                                 if (match.index !== undefined) {
                                     const startPos = new vscode.Position(currentLineNumber, match.index);
@@ -53,7 +50,7 @@ export class FilterManager {
                                 }
                             }
                         } catch (error) {
-                            console.error('Pattern highlighting error:', pattern, error);
+                            console.error('Pattern highlighting error:', highlightRegex, error);
                         }
                     }
 
@@ -79,11 +76,10 @@ export class FilterManager {
         let match;
 
         while ((match = patternRegex.exec(filterPattern)) !== null) {
-            // 提取引号内的内容并转换为高亮模式
             let pattern = match[1]
-                .replace(/\\"/g, '"')  // 处理转义的引号
-                .replace(/\\\\/g, '\\') // 处理转义的反斜杠
-                .replace(/\*/g, '[^]*?'); // 将通配符转换为非贪婪模式
+                .replace(/\\"/g, '"')  // Handle escaped quotes
+                .replace(/\\\\/g, '\\') // Handle escaped backslashes
+                .replace(/\*/g, '[^]*?'); // Convert wildcards to non-greedy pattern
             patterns.push(pattern);
         }
 
