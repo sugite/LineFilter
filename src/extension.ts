@@ -5,7 +5,7 @@ import { DocumentManager } from './document-manager';
 
 export function activate(context: vscode.ExtensionContext) {
     const filterManager = new FilterManager();
-    const uiManager = new UIManager();
+    const uiManager = new UIManager(context);
     const documentManager = new DocumentManager();
 
     let disposable = vscode.commands.registerCommand('log-line-filter.filter', async () => {
@@ -31,6 +31,9 @@ export function activate(context: vscode.ExtensionContext) {
         if (!filterPattern) {
             return;
         }
+
+        // 保存本次使用的模式
+        await uiManager.setLastPattern(filterPattern);
 
         try {
             // 保存原始内容

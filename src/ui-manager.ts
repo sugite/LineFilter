@@ -4,23 +4,32 @@ export class UIManager {
     private restoreButton: vscode.StatusBarItem | undefined;
     private restoreDisposable: vscode.Disposable | undefined;
     private highlightDecorationType!: vscode.TextEditorDecorationType;
+    private context: vscode.ExtensionContext;
+    private static readonly LAST_PATTERN_KEY = 'logLineFilter.lastPattern';
 
-    constructor() {
+    constructor(context: vscode.ExtensionContext) {
+        this.context = context;
         this.createHighlightDecoration();
     }
 
     private createHighlightDecoration() {
         this.highlightDecorationType = vscode.window.createTextEditorDecorationType({
-            backgroundColor: 'rgba(255, 235, 59, 0.3)', // 淡黄色背景
+            backgroundColor: 'rgba(255, 235, 59, 0.3)', // Light yellow background
             border: '1px solid rgba(255, 235, 59, 0.7)'
         });
     }
 
     public async showFilterInput(): Promise<string | undefined> {
+        const lastPattern = this.context.globalState.get<string>(UIManager.LAST_PATTERN_KEY);
         return await vscode.window.showInputBox({
             prompt: 'Enter filter pattern (e.g., ("fail*" or "*error") and "2024-01-01")',
-            placeHolder: 'Supports and/or operators, parentheses, wildcard *, patterns must be wrapped in double quotes'
+            placeHolder: 'Supports and/or operators, parentheses, wildcard *, patterns must be wrapped in double quotes',
+            value: lastPattern // Show last used pattern from persistent storage
         });
+    }
+
+    public async setLastPattern(pattern: string) {
+        await this.context.globalState.update(UIManager.LAST_PATTERN_KEY, pattern);
     }
 
     public createRestoreButton(command: string) {
@@ -35,7 +44,7 @@ export class UIManager {
     }
 
     public setHighlights(editor: vscode.TextEditor, ranges: vscode.Range[]) {
-        // 确保装饰器类型存在
+        // Ensure decoration type exists
         if (!this.highlightDecorationType) {
             this.createHighlightDecoration();
         }
