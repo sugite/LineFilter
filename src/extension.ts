@@ -11,64 +11,7 @@ const originalContents = new Map<string, string>();
 let currentRestoreDisposable: vscode.Disposable | undefined;
 let currentRestoreButton: vscode.StatusBarItem | undefined;
 
-// 存储历史记录和收藏夹
-interface FilterHistory {
-    pattern: string;
-    timestamp: number;
-    favorite?: boolean;
-}
-
-const MAX_HISTORY = 10; // 最多保存10条历史记录
-let filterHistory: FilterHistory[] = [];
-
-// 记录上次的输入
-let lastPattern: string | undefined;
-
-// 从设置中加载历史记录和收藏夹
-async function loadHistory(context: vscode.ExtensionContext) {
-    filterHistory = context.globalState.get<FilterHistory[]>('filterHistory', []);
-}
-
-// 保存历史记录和收藏夹到设置
-async function saveHistory(context: vscode.ExtensionContext) {
-    await context.globalState.update('filterHistory', filterHistory);
-}
-
-// 添加新的历史记录
-async function addToHistory(pattern: string, context: vscode.ExtensionContext) {
-    // 如果已存在相同的pattern，更新其时间戳
-    const existingIndex = filterHistory.findIndex(h => h.pattern === pattern);
-    if (existingIndex !== -1) {
-        const existing = filterHistory[existingIndex];
-        filterHistory.splice(existingIndex, 1);
-        filterHistory.unshift({
-            ...existing,
-            timestamp: Date.now()
-        });
-    } else {
-        // 添加新记录
-        filterHistory.unshift({
-            pattern,
-            timestamp: Date.now()
-        });
-        // 保持历史记录数量在限制内
-        if (filterHistory.length > MAX_HISTORY) {
-            // 保留收藏的项目
-            const favorites = filterHistory.filter(h => h.favorite);
-            const nonFavorites = filterHistory.filter(h => !h.favorite);
-            filterHistory = [
-                ...favorites,
-                ...nonFavorites.slice(0, MAX_HISTORY - favorites.length)
-            ];
-        }
-    }
-    await saveHistory(context);
-}
-
 export function activate(context: vscode.ExtensionContext) {
-    // 加载历史记录
-    loadHistory(context);
-
     // 创建一个装饰器类型
     const highlightDecorationType = vscode.window.createTextEditorDecorationType({
         backgroundColor: 'rgba(255, 235, 59, 0.3)', // 淡黄色背景
@@ -113,24 +56,14 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         // 获取新的过滤条件
-        let filterPattern: string | undefined;
-        
-        // 显示输入框，带上次输入的值
-        filterPattern = await vscode.window.showInputBox({
+        const filterPattern = await vscode.window.showInputBox({
             prompt: 'Enter filter pattern (e.g., ("fail*" or "*error") and "2024-01-01")',
-            placeHolder: 'Supports and/or operators, parentheses, wildcard *, patterns must be wrapped in double quotes',
-            value: lastPattern // 显示上次的输入
+            placeHolder: 'Supports and/or operators, parentheses, wildcard *, patterns must be wrapped in double quotes'
         });
 
         if (!filterPattern) {
             return;
         }
-
-        // 保存这次的输入
-        lastPattern = filterPattern;
-
-        // 添加到历史记录
-        await addToHistory(filterPattern, context);
 
         try {
             // 使用表达式解析器解析条件
@@ -215,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
                             const patterns = [];
                             let match;
                             const patternRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"/g;
-                            while ((match = patternRegex.exec(filterPattern!)) !== null) {
+                            while ((match = patternRegex.exec(filterPattern)) !== null) {
                                 // 提取引号内的内容并转换为高亮模式
                                 let pattern = match[1]
                                     .replace(/\\"/g, '"')  // 处理转义的引号
@@ -280,14 +213,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // 添加一个命令来清除历史记录
-    let clearHistoryDisposable = vscode.commands.registerCommand('log-line-filter.clearFilterHistory', () => {
-        filterHistory = [];
-        saveHistory(context);
-        vscode.window.showInformationMessage('过滤条件历史已清除');
-    });
-
-    context.subscriptions.push(disposable, clearHistoryDisposable);
+    context.subscriptions.push(disposable);
 }
 
 export function deactivate() {
