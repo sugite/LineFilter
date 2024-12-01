@@ -40,7 +40,7 @@ export class FilterManager {
         const matchedRanges: vscode.Range[] = [];
         const filteredLines: string[] = [];
         let processedLines = 0;
-        let currentLineNumber = 0;
+        let currFilterLineNumber: number[] = [0];
         let batchCount = 0;
 
         // 使用迭代器按需获取行
@@ -57,8 +57,7 @@ export class FilterManager {
 
             // 当累积够一批时处理
             if (batchCount >= FilterManager.BATCH_SIZE) {
-                await this.processBatch(currentBatch, regex, highlightRegexes, matchedRanges, filteredLines, currentLineNumber);
-                currentLineNumber += currentBatch.length;
+                await this.processBatch(currentBatch, regex, highlightRegexes, matchedRanges, filteredLines, currFilterLineNumber);
                 processedLines += currentBatch.length;
                 
                 const percentage = (processedLines / totalLines) * 100;
@@ -74,7 +73,7 @@ export class FilterManager {
 
         // 处理最后一批
         if (currentBatch.length > 0) {
-            await this.processBatch(currentBatch, regex, highlightRegexes, matchedRanges, filteredLines, currentLineNumber);
+            await this.processBatch(currentBatch, regex, highlightRegexes, matchedRanges, filteredLines, currFilterLineNumber);
             processedLines += currentBatch.length;
             
             const percentage = (processedLines / totalLines) * 100;
@@ -93,9 +92,8 @@ export class FilterManager {
         highlightRegexes: RegExp[],
         matchedRanges: vscode.Range[],
         filteredLines: string[],
-        startLineNumber: number
+        currFilterLineNumber: number[]
     ): Promise<void> {
-        let currentLineNumber = startLineNumber;
         
         for (const line of batch) {
             if (regex.test(line)) {
@@ -105,8 +103,8 @@ export class FilterManager {
                         const matches = Array.from(line.matchAll(highlightRegex));
                         for (const match of matches) {
                             if (match.index !== undefined) {
-                                const startPos = new vscode.Position(currentLineNumber, match.index);
-                                const endPos = new vscode.Position(currentLineNumber, match.index + match[0].length);
+                                const startPos = new vscode.Position(currFilterLineNumber[0], match.index);
+                                const endPos = new vscode.Position(currFilterLineNumber[0], match.index + match[0].length);
                                 matchedRanges.push(new vscode.Range(startPos, endPos));
                             }
                         }
@@ -116,7 +114,7 @@ export class FilterManager {
                 }
 
                 filteredLines.push(line);
-                currentLineNumber++;
+                currFilterLineNumber[0] = currFilterLineNumber[0] + 1;
             }
         }
     }
