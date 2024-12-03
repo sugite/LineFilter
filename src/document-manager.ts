@@ -19,6 +19,10 @@ export class DocumentManager {
         this.originalContents.clear();
     }
 
+    public hasOriginalContent(uri: string): boolean {
+        return this.originalContents.has(uri);
+    }
+
     public async applyEdit(editor: vscode.TextEditor, newContent: string): Promise<boolean> {
         const edit = new vscode.WorkspaceEdit();
         const fullRange = new vscode.Range(
