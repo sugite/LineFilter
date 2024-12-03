@@ -3,7 +3,8 @@ import * as vscode from 'vscode';
 export class UIManager {
     private restoreButton: vscode.StatusBarItem | undefined;
     private restoreDisposable: vscode.Disposable | undefined;
-    private highlightDecorationType!: vscode.TextEditorDecorationType;
+    private decorationTypes: Map<string, vscode.TextEditorDecorationType> = new Map();
+    private highlightRanges: Map<string, vscode.Range[]> = new Map();
     private context: vscode.ExtensionContext;
     private static readonly LAST_PATTERN_KEY = 'logLineFilter.lastPattern';
     private static readonly HISTORY_PATTERNS_KEY = 'logLineFilter.historyPatterns';
@@ -11,14 +12,18 @@ export class UIManager {
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
-        this.createHighlightDecoration();
     }
 
-    private createHighlightDecoration() {
-        this.highlightDecorationType = vscode.window.createTextEditorDecorationType({
-            backgroundColor: 'rgba(255, 235, 59, 0.3)', // Light yellow background
-            border: '1px solid rgba(255, 235, 59, 0.7)'
-        });
+    private getHighlightDecoration(documentUri: string): vscode.TextEditorDecorationType {
+        let decoration = this.decorationTypes.get(documentUri);
+        if (!decoration) {
+            decoration = vscode.window.createTextEditorDecorationType({
+                backgroundColor: 'rgba(255, 235, 59, 0.3)', // Light yellow background
+                border: '1px solid rgba(255, 235, 59, 0.7)'
+            });
+            this.decorationTypes.set(documentUri, decoration);
+        }
+        return decoration;
     }
 
     private async getHistoryPatterns(): Promise<string[]> {
@@ -108,17 +113,29 @@ export class UIManager {
     }
 
     public setHighlights(editor: vscode.TextEditor, ranges: vscode.Range[]) {
-        if (!this.highlightDecorationType) {
-            this.createHighlightDecoration();
-        }
-        editor.setDecorations(this.highlightDecorationType, ranges);
+        const documentUri = editor.document.uri.toString();
+        const decoration = this.getHighlightDecoration(documentUri);
+        editor.setDecorations(decoration, ranges);
+        // 保存高亮范围
+        this.highlightRanges.set(documentUri, ranges);
     }
 
     public clearHighlights(editor: vscode.TextEditor) {
-        if (this.highlightDecorationType) {
-            editor.setDecorations(this.highlightDecorationType, []);
-            this.highlightDecorationType.dispose();
-            this.createHighlightDecoration();
+        const documentUri = editor.document.uri.toString();
+        const decoration = this.decorationTypes.get(documentUri);
+        if (decoration) {
+            decoration.dispose();
+            this.decorationTypes.delete(documentUri);
+            this.highlightRanges.delete(documentUri);
+        }
+    }
+
+    public restoreHighlights(editor: vscode.TextEditor) {
+        const documentUri = editor.document.uri.toString();
+        const ranges = this.highlightRanges.get(documentUri);
+        if (ranges) {
+            const decoration = this.getHighlightDecoration(documentUri);
+            editor.setDecorations(decoration, ranges);
         }
     }
 
@@ -127,6 +144,14 @@ export class UIManager {
             this.restoreDisposable.dispose();
         }
         this.restoreDisposable = command;
+    }
+
+    public hideRestoreButton() {
+        if (this.restoreButton) {
+            this.restoreButton.hide();
+            this.restoreButton.dispose();
+            this.restoreButton = undefined;
+        }
     }
 
     public dispose() {
@@ -138,5 +163,11 @@ export class UIManager {
             this.restoreDisposable.dispose();
             this.restoreDisposable = undefined;
         }
+        // 清理所有装饰器和高亮范围
+        for (const decoration of this.decorationTypes.values()) {
+            decoration.dispose();
+        }
+        this.decorationTypes.clear();
+        this.highlightRanges.clear();
     }
 }
