@@ -10,7 +10,7 @@ A powerful VS Code extension for filtering text with advanced regex patterns and
 - Wildcard (*) support
 - Real-time highlighting
 - Automatic content restoration
-- Remember last used pattern
+- Pattern history with quick access to recent filters
 - Multi-file support with persistent highlights
 - Seamless editor switching with highlight preservation
 
