@@ -3,9 +3,9 @@
   "displayName": "Log Line Filter",
   "description": "Filter lines with advanced regex patterns, logical expressions, and multi-file support. Perfect for log analysis.",
   "version": "1.1.2",
-  "publisher": "dengbo",
+  "publisher": "Sugite",
   "author": {
-    "name": "dengbo"
+    "name": "Sugite"
   },
   "license": "MIT",
   "icon": "images/icon.png",
