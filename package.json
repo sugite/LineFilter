@@ -1,7 +1,7 @@
 {
   "name": "log-line-filter",
   "displayName": "Log Line Filter",
-  "description": "Filter lines with advanced regex patterns and logical expressions",
+  "description": "Filter lines with advanced regex patterns, logical expressions, and multi-file support. Perfect for log analysis.",
   "version": "1.1.2",
   "publisher": "dengbo",
   "author": {
@@ -25,7 +25,9 @@
     "regex",
     "search",
     "pattern",
-    "line"
+    "log",
+    "multi-file",
+    "highlight"
   ],
   "activationEvents": [
     "onCommand:log-line-filter.filter"

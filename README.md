@@ -11,6 +11,8 @@ A powerful VS Code extension for filtering text with advanced regex patterns and
 - Real-time highlighting
 - Automatic content restoration
 - Remember last used pattern
+- Multi-file support with persistent highlights
+- Seamless editor switching with highlight preservation
 
 ## Usage
 
@@ -46,6 +48,21 @@ Complex expressions:
 ## Requirements
 
 VS Code version 1.60.0 or higher
+
+## Changelog
+
+### 1.1.2
+- Added support for persistent highlights when switching between files
+- Improved multi-file filtering experience
+- Fixed highlight restoration when switching editors
+- Enhanced decoration management
+- Added progress notifications
+
+### 1.1.0
+- Initial release with basic filtering functionality
+- Support for regex patterns and logical expressions
+- Real-time highlighting
+- Pattern history
 
 ## License
 
