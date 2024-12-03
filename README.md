@@ -2,6 +2,16 @@
 
 A powerful VS Code extension for filtering text with advanced regex patterns and logical expressions.
 
+## Demo
+
+![Line Filter Demo](images/demo.gif)
+
+Watch how Line Filter helps you:
+- Filter log files with complex patterns
+- Use AND/OR operators for precise filtering
+- Quick access to pattern history
+- Work with multiple files simultaneously
+
 ## Features
 
 - Filter lines using complex search patterns
