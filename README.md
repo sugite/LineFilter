@@ -61,6 +61,10 @@ VS Code version 1.60.0 or higher
 
 ## Changelog
 
+### 1.1.4
+- Modified the filtering functionality to support displaying results in a new editor.
+- Resolved an issue where documents were not loaded correctly in certain cases.
+
 ### 1.1.3
 - Added demo GIF to showcase extension features
 - Updated documentation for pattern history feature

@@ -1,43 +1,32 @@
 import * as vscode from 'vscode';
 import { FilterManager } from './filter-manager';
 import { UIManager } from './ui-manager';
-import { DocumentManager } from './document-manager';
 
 export function activate(context: vscode.ExtensionContext) {
     const filterManager = new FilterManager();
     const uiManager = new UIManager(context);
-    const documentManager = new DocumentManager();
-
-    // 注册恢复命令
-    const restoreCommand = vscode.commands.registerCommand('log-line-filter.restoreContent', async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            return;
-        }
-
-        const documentUri = editor.document.uri.toString();
-        const originalContent = documentManager.getOriginalContent(documentUri);
-        if (originalContent) {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: 'Restoring content...',
-                cancellable: false
-            }, async () => {
-                await documentManager.applyEdit(editor, originalContent);
-                uiManager.clearHighlights(editor);
-                documentManager.deleteOriginalContent(documentUri);
-                uiManager.hideRestoreButton();
-            });
-        }
-    });
-    context.subscriptions.push(restoreCommand);
 
     let filterCommand = vscode.commands.registerCommand('log-line-filter.filter', async () => {
-        // 获取当前活动的文本编辑器
-        const editor = vscode.window.activeTextEditor;
+        // 获取当前活动的文本编辑器或活动文件
+        let editor = vscode.window.activeTextEditor;
+        let documentText: string;
+        let languageId: string;
+
         if (!editor) {
-            vscode.window.showErrorMessage('Please open a file first');
-            return;
+            // 如果没有获取到 editor，尝试直接读取当前文件
+            const activeDoc = vscode.window.tabGroups.activeTabGroup.activeTab?.input; 
+            if (activeDoc && typeof activeDoc === 'object' && isObjectWithUri(activeDoc)) {
+                const uri = activeDoc.uri;
+                const fileContent = await vscode.workspace.fs.readFile(uri);
+                documentText = Buffer.from(fileContent).toString('utf-8');
+                languageId = 'plaintext'; // 对于大文件，默认使用纯文本模式
+            } else {
+                vscode.window.showErrorMessage('Open a file first');
+                return;
+            }
+        } else {
+            documentText = editor.document.getText();
+            languageId = editor.document.languageId;
         }
 
         // 获取新的过滤条件
@@ -50,22 +39,6 @@ export function activate(context: vscode.ExtensionContext) {
         await uiManager.setLastPattern(filterPattern);
 
         try {
-            const documentUri = editor.document.uri.toString();
-            // 如果已经有过滤内容，先恢复
-            const existingContent = documentManager.getOriginalContent(documentUri);
-            if (existingContent) {
-                await documentManager.applyEdit(editor, existingContent);
-                uiManager.clearHighlights(editor);
-            }
-
-            // 保存原始内容
-            const documentText = editor.document.getText();
-            documentManager.saveOriginalContent(documentUri, documentText);
-
-            // 显示恢复按钮
-            uiManager.createRestoreButton('log-line-filter.restoreContent');
-
-            // 执行过滤
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: 'Filtering...',
@@ -75,32 +48,32 @@ export function activate(context: vscode.ExtensionContext) {
                 if (token.isCancellationRequested) {
                     return;
                 }
-                await documentManager.applyEdit(editor, result.filteredLines.join('\n'));
-                uiManager.setHighlights(editor, result.matchedRanges);
+
+                // 创建新文档
+                const filteredContent = result.filteredLines.join('\n');
+                const document = await vscode.workspace.openTextDocument({
+                    content: filteredContent,
+                    language: languageId
+                });
+
+                // 显示新文档
+                const newEditor = await vscode.window.showTextDocument(document, {
+                    viewColumn: vscode.ViewColumn.Beside, // 在旁边的编辑器组中打开
+                    preview: true // 预览模式
+                });
+
+                // 在新文档中设置高亮
+                uiManager.setHighlights(newEditor, result.matchedRanges);
             });
         } catch (error) {
-            vscode.window.showErrorMessage(`Filter error: ${error}`);
+            vscode.window.showErrorMessage(`过滤错误: ${error}`);
         }
     });
     context.subscriptions.push(filterCommand);
-
-    // 监听编辑器切换
-    context.subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor(editor => {
-            if (editor) {
-                const documentUri = editor.document.uri.toString();
-                if (documentManager.hasOriginalContent(documentUri)) {
-                    uiManager.createRestoreButton('log-line-filter.restoreContent');
-                    // 恢复高亮
-                    uiManager.restoreHighlights(editor);
-                } else {
-                    uiManager.hideRestoreButton();
-                }
-            }
-        })
-    );
 }
 
-export function deactivate() {
-    // No cleanup needed as all disposables are handled by VSCode
+function isObjectWithUri(obj: any): obj is { uri: any } {
+    return 'uri' in obj;
 }
+
+export function deactivate() {}
