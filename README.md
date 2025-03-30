@@ -10,19 +10,15 @@ Watch how Line Filter helps you:
 - Filter log files with complex patterns
 - Use AND/OR operators for precise filtering
 - Quick access to pattern history
-- Work with multiple files simultaneously
 
 ## Features
 
 - Filter lines using complex search patterns
 - Support for AND/OR logical operators
-- Regex pattern matching
 - Wildcard (*) support
 - Real-time highlighting
-- Automatic content restoration
 - Pattern history with quick access to recent filters
 - Multi-file support with persistent highlights
-- Seamless editor switching with highlight preservation
 
 ## Usage
 
@@ -70,7 +66,6 @@ VS Code version 1.60.0 or higher
 - Updated documentation for pattern history feature
 
 ### 1.1.2
-- Added support for persistent highlights when switching between files
 - Improved multi-file filtering experience
 - Fixed highlight restoration when switching editors
 - Enhanced decoration management
